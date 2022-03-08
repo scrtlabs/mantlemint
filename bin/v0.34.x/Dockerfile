@@ -23,7 +23,7 @@ RUN git clone --depth 1 https://github.com/microsoft/mimalloc; cd mimalloc; mkdi
 ENV MIMALLOC_LARGE_OS_PAGES=1
 
 # force it to use static lib (from above) not standard libgo_cosmwasm.so file
-RUN LEDGER_ENABLED=false go build -work -tags muslc,linux -mod=readonly -ldflags="-extldflags '-L/code/mimalloc/build -lmimalloc'" -o build/mantlemint ./sync.go
+RUN LEDGER_ENABLED=false go build -work -tags muslc,linux,rocksdb -mod=readonly -ldflags="-extldflags '-L/code/mimalloc/build -lmimalloc'" -o build/mantlemint ./sync.go
 
 FROM alpine:3.12
 

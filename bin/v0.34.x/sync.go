@@ -23,7 +23,7 @@ import (
 	wasmconfig "github.com/terra-money/core/x/wasm/config"
 	blockFeeder "github.com/terra-money/mantlemint-provider-v0.34.x/block_feed"
 	"github.com/terra-money/mantlemint-provider-v0.34.x/config"
-	"github.com/terra-money/mantlemint-provider-v0.34.x/db/heleveldb"
+	"github.com/terra-money/mantlemint-provider-v0.34.x/db/herocksdb"
 	"github.com/terra-money/mantlemint-provider-v0.34.x/db/hld"
 	"github.com/terra-money/mantlemint-provider-v0.34.x/db/safe_batch"
 	"github.com/terra-money/mantlemint-provider-v0.34.x/indexer"
@@ -58,17 +58,17 @@ func main() {
 	sdkConfig.SetAddressVerifier(core.AddressVerifier)
 	sdkConfig.Seal()
 
-	ldb, ldbErr := heleveldb.NewLevelDBDriver(&heleveldb.DriverConfig{
+	rocksdb, rocksdbErr := herocksdb.NewRocksDBDriver(&herocksdb.DriverConfig{
 		Name: mantlemintConfig.MantlemintDB,
 		Dir:  mantlemintConfig.Home,
-		Mode: heleveldb.DriverModeKeySuffixDesc,
+		Mode: herocksdb.DriverModeKeySuffixDesc,
 	})
-	if ldbErr != nil {
-		panic(ldbErr)
+	if rocksdbErr != nil {
+		panic(rocksdbErr)
 	}
 
 	var hldb = hld.ApplyHeightLimitedDB(
-		ldb,
+		rocksdb,
 		&hld.HeightLimitedDBConfig{
 			Debug: true,
 		},
