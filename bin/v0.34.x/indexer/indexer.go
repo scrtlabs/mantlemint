@@ -2,12 +2,12 @@ package indexer
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/gorilla/mux"
 	tm "github.com/tendermint/tendermint/types"
 	tmdb "github.com/tendermint/tm-db"
-	"github.com/terra-money/mantlemint-provider-v0.34.x/db/snappy"
 	"github.com/terra-money/mantlemint-provider-v0.34.x/mantlemint"
-	"time"
 )
 
 type Indexer struct {
@@ -17,15 +17,15 @@ type Indexer struct {
 }
 
 func NewIndexer(dbName, path string) (*Indexer, error) {
-	indexerDB, indexerDBError := tmdb.NewGoLevelDB(dbName, path)
+	indexerDB, indexerDBError := tmdb.NewRocksDB(dbName, path)
+
 	if indexerDBError != nil {
 		return nil, indexerDBError
 	}
-
-	indexerDBCompressed := snappy.NewSnappyDB(indexerDB, snappy.CompatModeEnabled)
+	// indexerDBCompressed := snappy.NewSnappyDB(indexerDB, snappy.CompatModeEnabled)
 
 	return &Indexer{
-		db:          indexerDBCompressed,
+		db:          indexerDB,
 		indexerTags: []string{},
 		indexers:    []IndexFunc{},
 	}, nil
