@@ -17,7 +17,7 @@ import (
 	wasmconfig "github.com/terra-money/core/x/wasm/config"
 	blockFeeder "github.com/terra-money/mantlemint/block_feed"
 	"github.com/terra-money/mantlemint/config"
-	"github.com/terra-money/mantlemint/db/heleveldb"
+	"github.com/terra-money/mantlemint/db/herocksdb"
 	"github.com/terra-money/mantlemint/db/hld"
 	"github.com/terra-money/mantlemint/db/safe_batch"
 	"github.com/terra-money/mantlemint/indexer"
