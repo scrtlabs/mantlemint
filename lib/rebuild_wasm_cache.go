@@ -38,7 +38,7 @@ func RebuildWasmCache(
 		}
 
 		log.Printf("recompiling wasm blob %s..\n", blobName)
-		_, analyzeErr := wasm.AnalyzeCode(cache, blobBytes)
+		_, analyzeErr := wasm.GetCode(cache, blobBytes)
 
 		if analyzeErr != nil {
 			return analyzeErr
