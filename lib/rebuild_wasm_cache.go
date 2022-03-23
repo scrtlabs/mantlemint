@@ -3,6 +3,7 @@ package lib
 import (
 	wasm "github.com/CosmWasm/wasmvm/api"
 	wasmconfig "github.com/terra-money/core/x/wasm/config"
+	"github.com/terra-money/core/x/wasm/types"
 	"io/ioutil"
 	"log"
 )
@@ -12,7 +13,6 @@ func RebuildWasmCache(
 	dataDir string,
 	supportedFeatures string,
 	cacheSize uint32,
-	instanceMemoryLimit uint32,
 ) error {
 	blobs, err := ioutil.ReadDir(dataDir)
 
@@ -24,7 +24,7 @@ func RebuildWasmCache(
 		dataDir,
 		supportedFeatures,
 		cacheSize,
-		instanceMemoryLimit,
+		types.ContractMemoryLimit,
 		wasmconfig.DefaultRefreshThreadNum,
 	)
 
