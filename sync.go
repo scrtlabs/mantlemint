@@ -5,26 +5,27 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/baseapp"
+	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	scrt "github.com/enigmampc/SecretNetwork/app"
+	core "github.com/enigmampc/SecretNetwork/types"
+	"github.com/enigmampc/SecretNetwork/x/compute"
 	"github.com/gorilla/mux"
+	blockFeeder "github.com/scrtlabs/mantlemint/block_feed"
+	"github.com/scrtlabs/mantlemint/config"
+	"github.com/scrtlabs/mantlemint/db/heleveldb"
+	"github.com/scrtlabs/mantlemint/db/hld"
+	"github.com/scrtlabs/mantlemint/db/safe_batch"
+	"github.com/scrtlabs/mantlemint/indexer"
+	"github.com/scrtlabs/mantlemint/indexer/block"
+	"github.com/scrtlabs/mantlemint/indexer/tx"
+	"github.com/scrtlabs/mantlemint/mantlemint"
+	"github.com/scrtlabs/mantlemint/rpc"
+	"github.com/scrtlabs/mantlemint/store/rootmulti"
 	"github.com/spf13/viper"
 	tmlog "github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/proxy"
 	tendermint "github.com/tendermint/tendermint/types"
-	terra "github.com/terra-money/core/app"
-	core "github.com/terra-money/core/types"
-	wasmconfig "github.com/terra-money/core/x/wasm/config"
-	blockFeeder "github.com/terra-money/mantlemint/block_feed"
-	"github.com/terra-money/mantlemint/config"
-	"github.com/terra-money/mantlemint/db/heleveldb"
-	"github.com/terra-money/mantlemint/db/hld"
-	"github.com/terra-money/mantlemint/db/safe_batch"
-	"github.com/terra-money/mantlemint/indexer"
-	"github.com/terra-money/mantlemint/indexer/block"
-	"github.com/terra-money/mantlemint/indexer/tx"
-	"github.com/terra-money/mantlemint/mantlemint"
-	"github.com/terra-money/mantlemint/rpc"
-	"github.com/terra-money/mantlemint/store/rootmulti"
 	"io/ioutil"
 	"log"
 	"os"
@@ -40,7 +41,8 @@ func main() {
 
 	sdkConfig := sdk.GetConfig()
 	sdkConfig.SetCoinType(core.CoinType)
-	sdkConfig.SetFullFundraiserPath(core.FullFundraiserPath)
+	// SetFullFundraiserPath is a deprecated function
+	//sdkConfig.SetFullFundraiserPath(core.FullFundraiserPath)
 	sdkConfig.SetBech32PrefixForAccount(core.Bech32PrefixAccAddr, core.Bech32PrefixAccPub)
 	sdkConfig.SetBech32PrefixForValidator(core.Bech32PrefixValAddr, core.Bech32PrefixValPub)
 	sdkConfig.SetBech32PrefixForConsensusNode(core.Bech32PrefixConsAddr, core.Bech32PrefixConsPub)
@@ -66,13 +68,15 @@ func main() {
 	batched := safe_batch.NewSafeBatchDB(hldb)
 	batchedOrigin := batched.(safe_batch.SafeBatchDBCloser)
 	logger := tmlog.NewTMLogger(os.Stdout)
-	codec := terra.MakeEncodingConfig()
+	codec := scrt.MakeEncodingConfig()
 
 	// customize CMS to limit kv store's read height on query
 	cms := rootmulti.NewStore(batched, hldb)
 	vpr := viper.GetViper()
 
-	var app = terra.NewTerraApp(
+	wasmConfig := compute.DefaultWasmConfig()
+	wasmConfig.EnclaveCacheSize = uint8(100)
+	var app = scrt.NewSecretNetworkApp(
 		logger,
 		batched,
 		nil,
@@ -80,9 +84,9 @@ func main() {
 		make(map[int64]bool),
 		mantlemintConfig.Home,
 		0,
-		codec,
-		vpr,
-		wasmconfig.GetConfig(vpr),
+		vpr.GetBool("bootstrap"),
+		simapp.EmptyAppOptions{},
+		wasmConfig,
 		fauxMerkleModeOpt,
 		func(ba *baseapp.BaseApp) {
 			ba.SetCMS(cms)

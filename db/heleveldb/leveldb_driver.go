@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/scrtlabs/mantlemint/db/hld"
+	"github.com/scrtlabs/mantlemint/lib"
 	tmdb "github.com/tendermint/tm-db"
-	"github.com/terra-money/mantlemint/db/hld"
-	"github.com/terra-money/mantlemint/lib"
 )
 
 type Driver struct {

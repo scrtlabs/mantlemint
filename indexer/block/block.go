@@ -2,11 +2,11 @@ package block
 
 import (
 	"fmt"
+	"github.com/scrtlabs/mantlemint/indexer"
+	"github.com/scrtlabs/mantlemint/mantlemint"
 	tmjson "github.com/tendermint/tendermint/libs/json"
 	tm "github.com/tendermint/tendermint/types"
 	tmdb "github.com/tendermint/tm-db"
-	"github.com/terra-money/mantlemint/indexer"
-	"github.com/terra-money/mantlemint/mantlemint"
 )
 
 var IndexBlock = indexer.CreateIndexer(func(indexerDB tmdb.Batch, block *tm.Block, blockID *tm.BlockID, _ *mantlemint.EventCollector) error {

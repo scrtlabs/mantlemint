@@ -12,19 +12,18 @@ import (
 	"github.com/cosmos/cosmos-sdk/server/config"
 	"github.com/cosmos/cosmos-sdk/server/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	scrt "github.com/enigmampc/SecretNetwork/app"
 	"github.com/gorilla/mux"
 	"github.com/spf13/viper"
 	tmlog "github.com/tendermint/tendermint/libs/log"
 	rpcclient "github.com/tendermint/tendermint/rpc/client"
-	terra "github.com/terra-money/core/app"
-	"github.com/terra-money/core/app/params"
 )
 
 func StartRPC(
-	app *terra.TerraApp,
+	app *scrt.SecretNetworkApp,
 	rpcclient rpcclient.Client,
 	chainId string,
-	codec params.EncodingConfig,
+	codec scrt.EncodingConfig,
 	invalidateTrigger chan int64,
 	registerCustomRoutes func(router *mux.Router),
 	getIsSynced func() bool,
@@ -32,7 +31,7 @@ func StartRPC(
 	vp := viper.GetViper()
 	cfg := config.GetConfig(vp)
 
-	// create terra client; register all codecs
+	// create secretnetwork client; register all codecs
 	context := client.
 		Context{}.
 		WithClient(rpcclient).
@@ -41,7 +40,7 @@ func StartRPC(
 		WithTxConfig(codec.TxConfig).
 		WithAccountRetriever(authtypes.AccountRetriever{}).
 		WithLegacyAmino(codec.Amino).
-		WithHomeDir(terra.DefaultNodeHome).
+		WithHomeDir(scrt.DefaultNodeHome).
 		WithChainID(chainId)
 
 	// create backends for response cache

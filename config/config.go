@@ -3,9 +3,9 @@ package config
 import (
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/x/crisis"
+	scrt "github.com/enigmampc/SecretNetwork/app"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	terra "github.com/terra-money/core/app"
 	"os"
 	"path/filepath"
 	"strings"
@@ -28,7 +28,7 @@ func NewConfig() Config {
 		// GenesisPath sets the location of genesis
 		GenesisPath: getValidEnv("GENESIS_PATH"),
 
-		// Home sets where the default terra home is.
+		// Home sets where the default secretnetwork home is.
 		Home: getValidEnv("MANTLEMINT_HOME"),
 
 		// ChainID sets expected chain id for this mantlemint instance
@@ -46,11 +46,11 @@ func NewConfig() Config {
 			return strings.Split(endpoints, ",")
 		}(),
 
-		// MantlemintDB is the db name for mantlemint. Defaults to terra.DefaultHome
+		// MantlemintDB is the db name for mantlemint. Defaults to scrt.DefaultHome
 		MantlemintDB: func() string {
 			mantlemintDB := getValidEnv("MANTLEMINT_DB")
 			if mantlemintDB == "" {
-				return terra.DefaultNodeHome
+				return scrt.DefaultNodeHome
 			} else {
 				return mantlemintDB
 			}
