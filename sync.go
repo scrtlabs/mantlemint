@@ -5,6 +5,10 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/baseapp"
+	serverConfig "github.com/cosmos/cosmos-sdk/server/config"
+	servergrpc "github.com/cosmos/cosmos-sdk/server/grpc"
+	"github.com/cosmos/cosmos-sdk/server/grpc/gogoreflection"
+	"github.com/cosmos/cosmos-sdk/server/types"
 	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	scrt "github.com/enigmampc/SecretNetwork/app"
@@ -26,10 +30,14 @@ import (
 	tmlog "github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/proxy"
 	tendermint "github.com/tendermint/tendermint/types"
+	"google.golang.org/grpc"
 	"io/ioutil"
 	"log"
+	"net"
+	"net/http"
 	"os"
 	"runtime/debug"
+	"time"
 
 	tmdb "github.com/tendermint/tm-db"
 )
@@ -195,6 +203,28 @@ func main() {
 		panic(rpcErr)
 	}
 
+	var (
+		grpcSrv    *grpc.Server
+		grpcWebSrv *http.Server
+		err        error
+	)
+
+	config := serverConfig.GetConfig(vpr)
+
+	if config.GRPC.Enable {
+		grpcSrv, err = StartGRPCServer(app, config.GRPC.Address)
+		if err != nil {
+			panic(err)
+		}
+
+		if config.GRPCWeb.Enable {
+			grpcWebSrv, err = servergrpc.StartGRPCWeb(grpcSrv, config)
+			if err != nil {
+				panic(err)
+			}
+		}
+	}
+
 	// start subscribing to block
 	if mantlemintConfig.DisableSync {
 		fmt.Println("running without sync...")
@@ -247,6 +277,15 @@ func main() {
 			cacheInvalidateChan <- feed.Block.Height
 		}
 	}
+
+	defer func() {
+		if grpcSrv != nil {
+			grpcSrv.Stop()
+			if grpcWebSrv != nil {
+				grpcWebSrv.Close()
+			}
+		}
+	}()
 }
 
 // Pass this in as an option to use a dbStoreAdapter instead of an IAVLStore for simulation speed.
@@ -266,6 +305,35 @@ func getGenesisDoc(genesisPath string) *tendermint.GenesisDoc {
 		panic(genesisErr)
 	} else {
 		return genesis
+	}
+}
+
+func StartGRPCServer(app types.Application, address string) (*grpc.Server, error) {
+	grpcSrv := grpc.NewServer()
+	app.RegisterGRPCServer(grpcSrv)
+	// reflection allows consumers to build dynamic clients that can write
+	// to any cosmos-sdk application without relying on application packages at compile time
+	// Reflection allows external clients to see what services and methods
+	// the gRPC server exposes.
+	gogoreflection.Register(grpcSrv)
+	listener, err := net.Listen("tcp", address)
+	if err != nil {
+		return nil, err
+	}
+
+	errCh := make(chan error)
+	go func() {
+		err = grpcSrv.Serve(listener)
+		if err != nil {
+			errCh <- fmt.Errorf("failed to serve: %w", err)
+		}
+	}()
+
+	select {
+	case err := <-errCh:
+		return nil, err
+	case <-time.After(types.ServerStartTime): // assume server started successfully
+		return grpcSrv, nil
 	}
 }
 
