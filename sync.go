@@ -5,11 +5,11 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/baseapp"
+	"github.com/cosmos/cosmos-sdk/server"
 	serverConfig "github.com/cosmos/cosmos-sdk/server/config"
 	servergrpc "github.com/cosmos/cosmos-sdk/server/grpc"
 	"github.com/cosmos/cosmos-sdk/server/grpc/gogoreflection"
 	"github.com/cosmos/cosmos-sdk/server/types"
-	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	scrt "github.com/enigmampc/SecretNetwork/app"
 	core "github.com/enigmampc/SecretNetwork/types"
@@ -26,6 +26,7 @@ import (
 	"github.com/scrtlabs/mantlemint/mantlemint"
 	"github.com/scrtlabs/mantlemint/rpc"
 	"github.com/scrtlabs/mantlemint/store/rootmulti"
+	"github.com/spf13/cast"
 	"github.com/spf13/viper"
 	tmlog "github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/proxy"
@@ -84,6 +85,16 @@ func main() {
 
 	wasmConfig := compute.DefaultWasmConfig()
 	wasmConfig.EnclaveCacheSize = uint8(100)
+
+	var (
+		err error
+	)
+
+	pruningOpts, err := server.GetPruningOptionsFromFlags(vpr)
+	if err != nil {
+		panic(err)
+	}
+
 	var app = scrt.NewSecretNetworkApp(
 		logger,
 		batched,
@@ -92,13 +103,22 @@ func main() {
 		make(map[int64]bool),
 		mantlemintConfig.Home,
 		0,
-		vpr.GetBool("bootstrap"),
-		simapp.EmptyAppOptions{},
+		false,
+		vpr,
 		wasmConfig,
 		fauxMerkleModeOpt,
 		func(ba *baseapp.BaseApp) {
 			ba.SetCMS(cms)
 		},
+		baseapp.SetPruning(pruningOpts),
+		baseapp.SetMinGasPrices(cast.ToString(vpr.Get(server.FlagMinGasPrices))),
+		baseapp.SetHaltHeight(cast.ToUint64(vpr.Get(server.FlagHaltHeight))),
+		baseapp.SetHaltTime(cast.ToUint64(vpr.Get(server.FlagHaltTime))),
+		baseapp.SetMinRetainBlocks(cast.ToUint64(vpr.Get(server.FlagMinRetainBlocks))),
+		baseapp.SetTrace(cast.ToBool(vpr.Get(server.FlagTrace))),
+		baseapp.SetIndexEvents(cast.ToStringSlice(vpr.Get(server.FlagIndexEvents))),
+		baseapp.SetSnapshotInterval(cast.ToUint64(vpr.Get(server.FlagStateSyncSnapshotInterval))),
+		baseapp.SetSnapshotKeepRecent(cast.ToUint32(vpr.Get(server.FlagStateSyncSnapshotKeepRecent))),
 	)
 
 	// create app...
@@ -206,7 +226,6 @@ func main() {
 	var (
 		grpcSrv    *grpc.Server
 		grpcWebSrv *http.Server
-		err        error
 	)
 
 	config := serverConfig.GetConfig(vpr)
