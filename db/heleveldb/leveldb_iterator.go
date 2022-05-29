@@ -3,8 +3,8 @@ package heleveldb
 import (
 	"bytes"
 
+	"github.com/scrtlabs/mantlemint/db/hld"
 	tmdb "github.com/tendermint/tm-db"
-	"github.com/terra-money/mantlemint/db/hld"
 )
 
 var _ hld.HeightLimitEnabledIterator = (*Iterator)(nil)

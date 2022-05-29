@@ -2,11 +2,11 @@ package tx
 
 import (
 	"fmt"
+	"github.com/scrtlabs/mantlemint/mantlemint"
 	"github.com/stretchr/testify/assert"
 	tmjson "github.com/tendermint/tendermint/libs/json"
 	tendermint "github.com/tendermint/tendermint/types"
 	tmdb "github.com/tendermint/tm-db"
-	"github.com/terra-money/mantlemint/mantlemint"
 	"io/ioutil"
 	"os"
 	"testing"

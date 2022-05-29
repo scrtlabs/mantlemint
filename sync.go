@@ -5,30 +5,40 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/baseapp"
+	"github.com/cosmos/cosmos-sdk/server"
+	serverConfig "github.com/cosmos/cosmos-sdk/server/config"
+	servergrpc "github.com/cosmos/cosmos-sdk/server/grpc"
+	"github.com/cosmos/cosmos-sdk/server/grpc/gogoreflection"
+	"github.com/cosmos/cosmos-sdk/server/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	scrt "github.com/enigmampc/SecretNetwork/app"
+	core "github.com/enigmampc/SecretNetwork/types"
+	"github.com/enigmampc/SecretNetwork/x/compute"
 	"github.com/gorilla/mux"
+	blockFeeder "github.com/scrtlabs/mantlemint/block_feed"
+	"github.com/scrtlabs/mantlemint/config"
+	"github.com/scrtlabs/mantlemint/db/heleveldb"
+	"github.com/scrtlabs/mantlemint/db/hld"
+	"github.com/scrtlabs/mantlemint/db/safe_batch"
+	"github.com/scrtlabs/mantlemint/indexer"
+	"github.com/scrtlabs/mantlemint/indexer/block"
+	"github.com/scrtlabs/mantlemint/indexer/tx"
+	"github.com/scrtlabs/mantlemint/mantlemint"
+	"github.com/scrtlabs/mantlemint/rpc"
+	"github.com/scrtlabs/mantlemint/store/rootmulti"
+	"github.com/spf13/cast"
 	"github.com/spf13/viper"
 	tmlog "github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/proxy"
 	tendermint "github.com/tendermint/tendermint/types"
-	terra "github.com/terra-money/core/app"
-	core "github.com/terra-money/core/types"
-	wasmconfig "github.com/terra-money/core/x/wasm/config"
-	blockFeeder "github.com/terra-money/mantlemint/block_feed"
-	"github.com/terra-money/mantlemint/config"
-	"github.com/terra-money/mantlemint/db/heleveldb"
-	"github.com/terra-money/mantlemint/db/hld"
-	"github.com/terra-money/mantlemint/db/safe_batch"
-	"github.com/terra-money/mantlemint/indexer"
-	"github.com/terra-money/mantlemint/indexer/block"
-	"github.com/terra-money/mantlemint/indexer/tx"
-	"github.com/terra-money/mantlemint/mantlemint"
-	"github.com/terra-money/mantlemint/rpc"
-	"github.com/terra-money/mantlemint/store/rootmulti"
+	"google.golang.org/grpc"
 	"io/ioutil"
 	"log"
+	"net"
+	"net/http"
 	"os"
 	"runtime/debug"
+	"time"
 
 	tmdb "github.com/tendermint/tm-db"
 )
@@ -40,7 +50,8 @@ func main() {
 
 	sdkConfig := sdk.GetConfig()
 	sdkConfig.SetCoinType(core.CoinType)
-	sdkConfig.SetFullFundraiserPath(core.FullFundraiserPath)
+	// SetFullFundraiserPath is a deprecated function
+	//sdkConfig.SetFullFundraiserPath(core.FullFundraiserPath)
 	sdkConfig.SetBech32PrefixForAccount(core.Bech32PrefixAccAddr, core.Bech32PrefixAccPub)
 	sdkConfig.SetBech32PrefixForValidator(core.Bech32PrefixValAddr, core.Bech32PrefixValPub)
 	sdkConfig.SetBech32PrefixForConsensusNode(core.Bech32PrefixConsAddr, core.Bech32PrefixConsPub)
@@ -66,13 +77,25 @@ func main() {
 	batched := safe_batch.NewSafeBatchDB(hldb)
 	batchedOrigin := batched.(safe_batch.SafeBatchDBCloser)
 	logger := tmlog.NewTMLogger(os.Stdout)
-	codec := terra.MakeEncodingConfig()
+	codec := scrt.MakeEncodingConfig()
 
 	// customize CMS to limit kv store's read height on query
 	cms := rootmulti.NewStore(batched, hldb)
 	vpr := viper.GetViper()
 
-	var app = terra.NewTerraApp(
+	wasmConfig := compute.DefaultWasmConfig()
+	wasmConfig.EnclaveCacheSize = uint8(100)
+
+	var (
+		err error
+	)
+
+	pruningOpts, err := server.GetPruningOptionsFromFlags(vpr)
+	if err != nil {
+		panic(err)
+	}
+
+	var app = scrt.NewSecretNetworkApp(
 		logger,
 		batched,
 		nil,
@@ -80,13 +103,22 @@ func main() {
 		make(map[int64]bool),
 		mantlemintConfig.Home,
 		0,
-		codec,
+		false,
 		vpr,
-		wasmconfig.GetConfig(vpr),
+		wasmConfig,
 		fauxMerkleModeOpt,
 		func(ba *baseapp.BaseApp) {
 			ba.SetCMS(cms)
 		},
+		baseapp.SetPruning(pruningOpts),
+		baseapp.SetMinGasPrices(cast.ToString(vpr.Get(server.FlagMinGasPrices))),
+		baseapp.SetHaltHeight(cast.ToUint64(vpr.Get(server.FlagHaltHeight))),
+		baseapp.SetHaltTime(cast.ToUint64(vpr.Get(server.FlagHaltTime))),
+		baseapp.SetMinRetainBlocks(cast.ToUint64(vpr.Get(server.FlagMinRetainBlocks))),
+		baseapp.SetTrace(cast.ToBool(vpr.Get(server.FlagTrace))),
+		baseapp.SetIndexEvents(cast.ToStringSlice(vpr.Get(server.FlagIndexEvents))),
+		baseapp.SetSnapshotInterval(cast.ToUint64(vpr.Get(server.FlagStateSyncSnapshotInterval))),
+		baseapp.SetSnapshotKeepRecent(cast.ToUint32(vpr.Get(server.FlagStateSyncSnapshotKeepRecent))),
 	)
 
 	// create app...
@@ -191,6 +223,27 @@ func main() {
 		panic(rpcErr)
 	}
 
+	var (
+		grpcSrv    *grpc.Server
+		grpcWebSrv *http.Server
+	)
+
+	config := serverConfig.GetConfig(vpr)
+
+	if config.GRPC.Enable {
+		grpcSrv, err = StartGRPCServer(app, config.GRPC.Address)
+		if err != nil {
+			panic(err)
+		}
+
+		if config.GRPCWeb.Enable {
+			grpcWebSrv, err = servergrpc.StartGRPCWeb(grpcSrv, config)
+			if err != nil {
+				panic(err)
+			}
+		}
+	}
+
 	// start subscribing to block
 	if mantlemintConfig.DisableSync {
 		fmt.Println("running without sync...")
@@ -243,6 +296,15 @@ func main() {
 			cacheInvalidateChan <- feed.Block.Height
 		}
 	}
+
+	defer func() {
+		if grpcSrv != nil {
+			grpcSrv.Stop()
+			if grpcWebSrv != nil {
+				grpcWebSrv.Close()
+			}
+		}
+	}()
 }
 
 // Pass this in as an option to use a dbStoreAdapter instead of an IAVLStore for simulation speed.
@@ -262,6 +324,35 @@ func getGenesisDoc(genesisPath string) *tendermint.GenesisDoc {
 		panic(genesisErr)
 	} else {
 		return genesis
+	}
+}
+
+func StartGRPCServer(app types.Application, address string) (*grpc.Server, error) {
+	grpcSrv := grpc.NewServer()
+	app.RegisterGRPCServer(grpcSrv)
+	// reflection allows consumers to build dynamic clients that can write
+	// to any cosmos-sdk application without relying on application packages at compile time
+	// Reflection allows external clients to see what services and methods
+	// the gRPC server exposes.
+	gogoreflection.Register(grpcSrv)
+	listener, err := net.Listen("tcp", address)
+	if err != nil {
+		return nil, err
+	}
+
+	errCh := make(chan error)
+	go func() {
+		err = grpcSrv.Serve(listener)
+		if err != nil {
+			errCh <- fmt.Errorf("failed to serve: %w", err)
+		}
+	}()
+
+	select {
+	case err := <-errCh:
+		return nil, err
+	case <-time.After(types.ServerStartTime): // assume server started successfully
+		return grpcSrv, nil
 	}
 }
 

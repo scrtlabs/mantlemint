@@ -7,8 +7,8 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
+	"github.com/scrtlabs/mantlemint/indexer"
 	tmdb "github.com/tendermint/tm-db"
-	"github.com/terra-money/mantlemint/indexer"
 )
 
 var (

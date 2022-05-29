@@ -1,0 +1,3 @@
+[submodule "SecretNetwork"]
+	path = SecretNetwork
+	url = git@github.com:scrtlabs/SecretNetwork.git

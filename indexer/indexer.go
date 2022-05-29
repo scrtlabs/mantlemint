@@ -3,10 +3,10 @@ package indexer
 import (
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/scrtlabs/mantlemint/db/snappy"
+	"github.com/scrtlabs/mantlemint/mantlemint"
 	tm "github.com/tendermint/tendermint/types"
 	tmdb "github.com/tendermint/tm-db"
-	"github.com/terra-money/mantlemint/db/snappy"
-	"github.com/terra-money/mantlemint/mantlemint"
 	"time"
 )
 

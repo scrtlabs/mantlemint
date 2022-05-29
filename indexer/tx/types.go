@@ -2,8 +2,8 @@ package tx
 
 import (
 	"encoding/json"
+	"github.com/scrtlabs/mantlemint/lib"
 	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/terra-money/mantlemint/lib"
 	"time"
 )
 

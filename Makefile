@@ -12,8 +12,8 @@ endif
 
 build-static:
 	mkdir -p $(BUILDDIR)
-	docker buildx build --tag terramoney/mantlemint ./
-	docker create --name temp terramoney/mantlemint:latest
+	docker buildx build --tag scrtlabs/mantlemint ./
+	docker create --name temp scrtlabs/mantlemint:latest
 	docker cp temp:/usr/local/bin/mantlemint $(BUILDDIR)/
 	docker rm temp
 

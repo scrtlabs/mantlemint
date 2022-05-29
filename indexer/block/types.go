@@ -1,8 +1,8 @@
 package block
 
 import (
+	"github.com/scrtlabs/mantlemint/lib"
 	tm "github.com/tendermint/tendermint/types"
-	"github.com/terra-money/mantlemint/lib"
 )
 
 var prefix = []byte("block/height:")
