@@ -74,7 +74,6 @@ require (
 	github.com/jmhodges/levigo v1.0.0 // indirect
 	github.com/keybase/go-keychain v0.0.0-20190712205309-48d3d31d256d // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
-	github.com/kr/text v0.2.0 // indirect
 	github.com/lib/pq v1.10.4 // indirect
 	github.com/libp2p/go-buffer-pool v0.0.2 // indirect
 	github.com/magiconair/properties v1.8.5 // indirect
@@ -85,7 +84,6 @@ require (
 	github.com/miscreant/miscreant.go v0.0.0-20200214223636-26d376326b75 // indirect
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
 	github.com/mtibben/percent v0.2.1 // indirect
-	github.com/onsi/gomega v1.13.0 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/petermattis/goid v0.0.0-20180202154549-b0b1615b78e5 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
@@ -126,7 +124,5 @@ replace (
 	github.com/99designs/keyring => github.com/cosmos/keyring v1.1.7-0.20210622111912-ef00f8ac3d76
 	github.com/cosmos/cosmos-sdk v0.45.1 => github.com/scrtlabs/cosmos-sdk v0.45.4-scrt.0.20220506123023-e9198e81a691
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
-	github.com/tendermint/tendermint => github.com/scrtlabs/tendermint v0.34.14-mm-secret.2
-	github.com/tendermint/tm-db => github.com/scrtlabs/tm-db v0.6.4-mm-performance.7
 	google.golang.org/grpc => google.golang.org/grpc v1.33.2
 )
