@@ -3,7 +3,7 @@ module github.com/scrtlabs/mantlemint
 go 1.17
 
 require (
-	github.com/cosmos/cosmos-sdk v0.45.1
+	github.com/cosmos/cosmos-sdk v0.44.5
 	github.com/cosmos/iavl v0.17.3
 	github.com/enigmampc/SecretNetwork v1.2.6
 	github.com/gogo/protobuf v1.3.3
@@ -124,7 +124,7 @@ require (
 replace (
 	github.com/99designs/keyring => github.com/cosmos/keyring v1.1.7-0.20210622111912-ef00f8ac3d76
 	github.com/coinbase/rosetta-sdk-go v0.7.0 => github.com/coinbase/rosetta-sdk-go v0.6.10
-	github.com/cosmos/cosmos-sdk v0.45.1 => github.com/scrtlabs/cosmos-sdk v0.44.4-0.20211117100413-27366ad17d3a
+	github.com/cosmos/cosmos-sdk v0.44.5 => github.com/scrtlabs/cosmos-sdk v0.44.4-0.20211117100413-27366ad17d3a
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
 	github.com/tendermint/tendermint => github.com/scrtlabs/tendermint v0.34.14-mm-secret.2
 	github.com/tendermint/tm-db => github.com/scrtlabs/tm-db v0.6.4-mm-performance.7
